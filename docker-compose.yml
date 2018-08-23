@@ -1,0 +1,103 @@
+# ************************************************************************** #
+#                                                                            #
+#   docker-compose.yml                                                       #
+#                                                                            #
+#   By: elhmn <www.elhmn.com>                                                #
+#             <nleme@live.fr>                                                #
+#                                                                            #
+#   Created: Sun Aug 26 16:10:10 2018                        by elhmn        #
+#   Updated: Sun Aug 26 16:10:10 2018                        by bmbarga      #
+#                                                                            #
+# ************************************************************************** #
+
+version: "3"
+services:
+    api:
+        image: elhmn/ac_api:test-4
+        deploy:
+            replicas: 3
+            resources:
+                limits:
+                    cpus: "0.1"
+                    memory: 50M
+            restart_policy:
+                condition: on-failure
+        ports:
+            - "8080:80"
+        networks:
+            - webnet
+#         volumes:
+#             - api-data:/var/www/
+#         extra_hosts:
+#             - "ac-apidb.cirah.com:192.168.99.104"
+#             - "ac-authdb.cirah.com:192.168.99.105"
+    auth:
+        image: elhmn/ac_auth:test-4
+        deploy:
+            replicas: 3
+            resources:
+                limits:
+                    cpus: "0.1"
+                    memory: 50M
+            restart_policy:
+                condition: on-failure
+        ports:
+            - "8081:80"
+        networks:
+            - webnet
+#         volumes:
+#             - auth-data:/var/www/
+#         extra_hosts:
+#             - "ac-apidb.cirah.com:192.168.99.104"
+#             - "ac-authdb.cirah.com:192.168.99.105"
+    apidb:
+        image: elhmn/ac_apidb:test-4
+        deploy:
+            replicas: 1
+            restart_policy:
+                condition: on-failure
+            placement:
+                constraints: [node.labels.apidb == true ]
+        ports:
+            - "3000:3306"
+            - "3001:33060"
+        networks:
+            - webnet
+        volumes:
+            - apidb-data:/var/lib/mysql
+    authdb:
+        image: elhmn/ac_authdb:test-4
+        deploy:
+            replicas: 1
+            restart_policy:
+                condition: on-failure
+            placement:
+                constraints: [node.labels.authdb == true ]
+        ports:
+            - "4000:3306"
+            - "4001:33060"
+        networks:
+            - webnet
+        volumes:
+            - authdb-data:/var/lib/mysql
+    visualizer:
+        image: dockersamples/visualizer:stable
+        ports:
+          - "8085:8080"
+        volumes:
+          - "/var/run/docker.sock:/var/run/docker.sock"
+        deploy:
+            placement:
+                constraints: [node.role == manager]
+        networks:
+            - webnet
+networks:
+    webnet:
+        external: true
+
+volumes:
+    apidb-data:
+    authdb-data:
+#     api-data:
+#     auth-data:
+# docker network create --driver=overlay --attachable webnet
